@@ -24,7 +24,7 @@ describe('fetchmap', () => {
   afterAll(() => controller.abort())
 
   test('ok', async () => {
-    const result = await fetchmap({ url: url('text') })
+    const result = await fetchmap({ url: url('text') }, fetch)
     expect(result.tag).toEqual('success')
 
     if (result.tag === 'success') {
@@ -33,45 +33,59 @@ describe('fetchmap', () => {
   })
 
   test('ok, mapSuccess text', async () => {
-    const result = await fetchmap({ url: url('text'), mapSuccess: 'text' })
+    const result = await fetchmap({ url: url('text'), mapSuccess: 'text' }, fetch)
+    expect(result).toEqual<typeof result>(success('ok'))
+  })
+
+  test('ok, mapSuccess text, curried form', async () => {
+    const result = await fetchmap({ url: url('text'), mapSuccess: 'text' })(fetch)
     expect(result).toEqual<typeof result>(success('ok'))
   })
 
   test('ok, mapSuccess json', async () => {
-    const result = await fetchmap({ url: url('json'), mapSuccess: 'json' })
+    const result = await fetchmap({ url: url('json'), mapSuccess: 'json' }, fetch)
     expect(result).toEqual<typeof result>(success({ some: 'data' }))
   })
 
   test('ok, mapSuccess function', async () => {
-    const result = await fetchmap({ url: url('json'), mapSuccess: (r: Response) => r.status })
+    const result = await fetchmap(
+      { url: url('json'), mapSuccess: (r: Response) => r.status },
+      fetch
+    )
     expect(result).toEqual<typeof result>(success(200))
   })
 
   test('ok, mapSuccess object', async () => {
-    const result = await fetchmap({
-      url: url('json-201'),
-      mapSuccess: { 201: 'json', default: 'text' }
-    })
+    const result = await fetchmap(
+      {
+        url: url('json-201'),
+        mapSuccess: { 201: 'json', default: 'text' }
+      },
+      fetch
+    )
     expect(result).toEqual<typeof result>(success(['its 201']))
   })
 
   test('ok, mapSuccess object, default handler', async () => {
-    const result = await fetchmap({
-      url: url('text'),
-      mapSuccess: { 201: 'json', default: 'text' }
-    })
+    const result = await fetchmap(
+      {
+        url: url('text'),
+        mapSuccess: { 201: 'json', default: 'text' }
+      },
+      fetch
+    )
     expect(result).toEqual<typeof result>(success('ok'))
   })
 
   test('fail, clientError', async () => {
-    const result = await fetchmap({ url: '1234' })
+    const result = await fetchmap({ url: '1234' }, fetch)
     expect(result).toEqual<typeof result>(
       failure({ clientError: new TypeError('Only absolute URLs are supported') })
     )
   })
 
   test('fail, mapError, mapSuccess json', async () => {
-    const result = await fetchmap({ url: url('text'), mapSuccess: 'json' })
+    const result = await fetchmap({ url: url('text'), mapSuccess: 'json' }, fetch)
     expect(result).toEqual<typeof result>(
       failure({
         mapError: new FetchError(
@@ -83,17 +97,20 @@ describe('fetchmap', () => {
   })
 
   test('fail, mapError, mapSuccess function', async () => {
-    const result = await fetchmap({
-      url: url('text'),
-      mapSuccess: (_: Response) => {
-        throw new Error('what?')
-      }
-    })
+    const result = await fetchmap(
+      {
+        url: url('text'),
+        mapSuccess: (_: Response) => {
+          throw new Error('what?')
+        }
+      },
+      fetch
+    )
     expect(result).toEqual<typeof result>(failure({ mapError: new Error('what?') }))
   })
 
   test('fail, serverError', async () => {
-    const result = await fetchmap({ url: url('not-found') })
+    const result = await fetchmap({ url: url('not-found') }, fetch)
     expect(result.tag).toEqual('failure')
 
     if (result.tag === 'failure') {
@@ -106,17 +123,17 @@ describe('fetchmap', () => {
   })
 
   test('fail, serverError, mapFailure text', async () => {
-    const result = await fetchmap({ url: url('not-found'), mapFailure: 'text' })
+    const result = await fetchmap({ url: url('not-found'), mapFailure: 'text' }, fetch)
     expect(result).toEqual<typeof result>(failure({ serverError: 'Not Found' }))
   })
 
   test('fail, serverError, mapFailure json', async () => {
-    const result = await fetchmap({ url: url('server-error'), mapFailure: 'json' })
+    const result = await fetchmap({ url: url('server-error'), mapFailure: 'json' }, fetch)
     expect(result).toEqual<typeof result>(failure({ serverError: { error: 'Server error' } }))
   })
 
   test('fail, mapError, mapFailure json', async () => {
-    const result = await fetchmap({ url: url('not-found'), mapFailure: 'json' })
+    const result = await fetchmap({ url: url('not-found'), mapFailure: 'json' }, fetch)
     expect(result).toEqual<typeof result>(
       failure({
         mapError: new FetchError(
@@ -128,15 +145,18 @@ describe('fetchmap', () => {
   })
 
   test('fail, serverError, mapFailure function', async () => {
-    const result = await fetchmap({
-      url: url('server-error'),
-      mapFailure: (r: Response) => r.status
-    })
+    const result = await fetchmap(
+      {
+        url: url('server-error'),
+        mapFailure: (r: Response) => r.status
+      },
+      fetch
+    )
     expect(result).toEqual<typeof result>(failure({ serverError: 500 }))
   })
 
   test('fail, serverError, mapFailure text, no route', async () => {
-    const result = await fetchmap({ url: url('what'), mapFailure: 'text' })
+    const result = await fetchmap({ url: url('what'), mapFailure: 'text' }, fetch)
     expect(result).toEqual<typeof result>(failure({ serverError: whatError }))
   })
 })

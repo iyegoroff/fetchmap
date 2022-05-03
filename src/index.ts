@@ -62,6 +62,10 @@ type FetchResult<
   MapFailure extends MultiMapResponse | undefined
 > = FetchSuccessResult<MapSuccess> | FetchFailureResult<MapSuccess, MapFailure>
 
+type CommonFetchResult = Promise<
+  FetchResult<MultiMapResponse | undefined, MultiMapResponse | undefined>
+>
+
 type FetchInit<
   MapSuccess extends MultiMapResponse | undefined,
   MapFailure extends MultiMapResponse | undefined
@@ -86,14 +90,27 @@ export function fetchmap<
   MapFailure extends MultiMapResponse | undefined = undefined
 >(
   init: FetchInit<MapSuccess, MapFailure>,
-  fetcher?: typeof fetch
+  fetcher: typeof fetch
 ): Promise<PrettyType<FetchResult<MapSuccess, MapFailure>>>
 
+export function fetchmap<
+  MapSuccess extends MultiMapResponse | undefined = undefined,
+  MapFailure extends MultiMapResponse | undefined = undefined
+>(
+  init: FetchInit<MapSuccess, MapFailure>
+): (fetcher: typeof fetch) => Promise<PrettyType<FetchResult<MapSuccess, MapFailure>>>
+
 export function fetchmap(
-  { url, mapSuccess, mapFailure, ...init }: FetchInit<MultiMapResponse, MultiMapResponse>,
-  fetcher: typeof fetch = fetch
-): Promise<FetchResult<MultiMapResponse | undefined, MultiMapResponse | undefined>> {
-  return fetcher(url, init)
+  init: FetchInit<MultiMapResponse, MultiMapResponse>,
+  fetcher?: typeof fetch
+): CommonFetchResult | ((f: typeof fetch) => CommonFetchResult) {
+  if (fetcher === undefined) {
+    return (f: typeof fetch) => fetchmap(init, f)
+  }
+
+  const { url, mapSuccess, mapFailure, ...reqInit } = init
+
+  return fetcher(url, reqInit)
     .then(async (response) => {
       const map = response.ok ? mapSuccess : mapFailure
       const result = response.ok ? success : serverErrorFailure
