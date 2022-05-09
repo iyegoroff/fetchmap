@@ -170,16 +170,6 @@ type CommonFetchResult = Promise<FetchResult<MultiMapResponse>>
 
 type PrettyType<V> = Extract<{ [K in keyof V]: V[K] }, unknown>
 
-const identity = <T>(x: T) => x
-
-const success = <T>(value: T) => ({ tag: 'success', success: value } as const)
-const failure = <T>(error: T) => ({ tag: 'failure', failure: error } as const)
-
-const serverErrorFailure = <T>(serverError: T) => failure({ serverError })
-
-const mapFun = (response: Response, map: MapResponse) =>
-  typeof map === 'string' ? response[map]() : map(response)
-
 type FetchParams = Parameters<typeof fetch>
 
 /**
@@ -267,3 +257,13 @@ export function fetchmap(
         })
         .catch((clientError: unknown) => failure({ clientError }))
 }
+
+const serverErrorFailure = <T>(serverError: T) => failure({ serverError })
+
+const success = <T>(value: T) => ({ tag: 'success', success: value } as const)
+const failure = <T>(error: T) => ({ tag: 'failure', failure: error } as const)
+
+const mapFun = (response: Response, map: MapResponse) =>
+  typeof map === 'string' ? response[map]() : map(response)
+
+const identity = <T>(x: T) => x
