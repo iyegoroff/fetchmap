@@ -27,7 +27,8 @@
     "type-coverage": "type-coverage --detail --strict"
   },
   "keywords": [
-    "fetch"
+    "fetch",
+    "result"
   ],
   "files": [
     "dist",
@@ -82,6 +83,6 @@
     "testEnvironment": "node"
   },
   "typeCoverage": {
-    "atLeast": 99
+    "atLeast": 100
   }
 }
