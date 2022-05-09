@@ -189,8 +189,8 @@ type FetchParams = Parameters<typeof fetch>
  * Keys can be numbers + `ok` and `notOk`. If no mapping for received response status specified, it
  * will use `ok` transform for statuses in the inclusive range from 200 to 299 and `notOk`
  * otherwise. Both `ok` and `notOk` just return received `Response` object by default. Each
- * transform is a function that takes `Response` and returns something or a string literal that
- * represent a body reading method: `json`, `text`, `blob`, `arrayBuffer`, `formData`.
+ * transform is a string literal that represents a body reading method (`json`, `text`, `blob`,
+ * `arrayBuffer`, `formData`) or a function that takes `Response` and returns something.
  *
  * @param input Standard `fetch` first argument
  *
@@ -222,9 +222,9 @@ export function fetchmap<Map extends Partial<MultiMapResponse>>(
  * @param map An object to map `response.status` to `(response: Response) => unknown` transform.
  * Keys can be numbers + `ok` and `notOk`. If no mapping for received response status specified, it
  * will use `ok` transform for statuses in the inclusive range from 200 to 299 and `notOk`
- * otherwise. Both `ok` and `notOk` just return received `Response` object by default. Each
- * transform is a function that takes `Response` and returns something or a string literal that
- * represent a body reading method: `json`, `text`, `blob`, `arrayBuffer`, `formData`.
+ * otherwise. Both `ok` and `notOk` just return received `Response` object by default.  Each
+ * transform is a string literal that represents a body reading method (`json`, `text`, `blob`,
+ * `arrayBuffer`, `formData`) or a function that takes `Response` and returns something.
  *
  * @param ... Standard `fetch` arguments
  *
