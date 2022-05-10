@@ -21,7 +21,7 @@ npm i fetchmap
 
 ## Description
 
-This is a simple wrapper for standard `fetch` function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `(response: Response) => unknown` transform, standard `fetch` arguments and a `fetch` function itself. The last argument can be curried.
+This is a simple wrapper for a`fetch`-like function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `<T>(response: Response) => T` transform and standard `fetch` arguments. The last argument can be curried.
 
 ## Example
 
@@ -36,31 +36,34 @@ express()
   .listen(5005)
 
 // client code
-import { fetchmap } from 'fetchmap'
+import { createFetchmap } from 'fetchmap'
+import fetch from 'node-fetch'
 
-const json_success = await fetchmap({ ok: 'json' }, 'https://localhost:5005/json')(fetch)
+const fetchmap = createFetchmap(fetch)
+
+const json_success = await fetchmap({ ok: 'json' }, 'https://localhost:5005/json')
 expect(json_success).toEqual({ tag: 'success', success: { some: 'data' } })
 
-const json_success_only_200 = await fetchmap({ 200: 'json' }, 'https://localhost:5005/json')(fetch)
+const json_success_only_200 = await fetchmap({ 200: 'json' }, 'https://localhost:5005/json')
 expect(json_success_only_200).toEqual({ tag: 'success', success: { some: 'data' } })
 
-const invalid_url_failure_non_curried_form = await fetchmap({}, '1234', undefined, fetch)
-expect(invalid_url_failure_non_curried_form).toEqual({
+const invalid_url_failure = await fetchmap({}, '1234')
+expect(invalid_url_failure).toEqual({
   tag: 'failure',
   failure: { clientError: new TypeError('Only absolute URLs are supported') }
 })
 
 const not_found_error_with_request_init = await fetchmap(
-  { notOk: ({ status }: Response) => status },
+  { notOk: ({ status }) => status },
   'https://localhost:5005/invalid',
   { method: 'POST', credentials: 'include' }
-)(fetch)
+)
 expect(not_found_error_with_request_init).toEqual({ tag: 'failure', failure: { serverError: 404 } })
 ```
 
 ## Usage
 
-See [test](/test) or [playground](https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBAbzgMwKYwMYAsQEMxwC+KUEIcA5GpjvhQFD0YQB2AzvAK5QA2cAvJSwwYYAFwB6CTwgZcPLBA5iArAAY1Khk1Yc4AK04cASqjaR2qASnTY8YABQJCAGjjceASgfVsnxszs8PpsrADKnBgYZmzWvrSOSBAA1mKUIawURG4e3vH+OkFwAEYyxRFRMQCCLAAmACqoAB4wAGK4wDzcVoLx9k5wKWkUpRDFFG4sEDAA8qmUMM0wWa7uvHm2WAWBesicLBgwwOGR0WyxvZv9SfMOUGmm5rqongIAfHBQAHQcuDBG2TWXh8m22ungIE4PCOYB4qAAsvgLjYaNd6HAMXAAEwaYa4KBQXAATwAQpxkGgoBN0ZiACxqWnDZDQEAAET+uGpmMG8woixaXMxU1mt3ucEeFjYL3eny+MCJYFQ9FWuRBNDBRSgqAAjpwzDAAJIsYCzMAwZF9fBOFW8NxIEDoRS1YYABRmYXqEzgGC1tVQLCO8jYw2ABy6fpWG3V9CAA)
+See [test](/test) or [playground](https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBAbzgYygUwIYzQMTTZACxAzDgF84AzKCEOAcivyJLAYCgPkIA7AZ3jMCxUnAC8KdFlwtRYABTCiASi48B8AK5QANhMaEYMMAC4A9Od0RkGXYQiDTAVgAMr55259BcAFZaggBKaPyQAmgGyvIKCOQANHA6umremv78fADKWsjIofxRcmyxcBAA1qaMfpm8DBSJyakavgBG1q05eQUAgrwAJgAqaAAeMDgYwLo6kZLRJUgVVQztEK0MibwQMADylYzYY-UJSXrNPkJavMgwwNm5+fyFc8WkpUtwClAqEgB8cFAAHSCLCBBqnFLqC5wEBaXS3MC6NAAWVIz2or0UCA4cFxcAATO5lhgoFAMABPABCWiozCgGxxeIALK4mcsqNAQAARLAYBl4sr7BiHGD8vFbXb7L4-cT-IEwclgNAcE5NKHpdAARy0oRgAEleMBdmAYOj5m84o09IkkCB8A5+ssAAo7LKDDZSND9NC8W52fjLYDXabe45qIA)
 
 ## Misc
 
