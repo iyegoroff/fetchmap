@@ -1,6 +1,6 @@
 {
   "name": "fetchmap",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Non-throwing fetch wrapper",
   "sideEffects": false,
   "main": "./dist/cjs/index.js",
