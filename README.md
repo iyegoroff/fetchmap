@@ -21,7 +21,7 @@ npm i fetchmap
 
 ## Description
 
-This is a simple wrapper for a`fetch`-like function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `<T>(response: Response) => T` transform and standard `fetch` arguments. The last argument can be curried.
+This is a simple wrapper for a `fetch`-like function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `<T>(response: Response) => T` transform and standard `fetch` arguments. The last argument can be curried.
 
 ## Example
 
