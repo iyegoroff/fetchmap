@@ -14,15 +14,16 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "preversion": "npm run lint -- --fix && npm run build && npm t && npm run type-coverage",
+    "preversion": "npm run lint -- --fix && npm run build && npm run typecheck-test && npm t && npm run type-coverage",
     "postversion": "git add . && git commit -am \"lint [skip build]\" || : && git push && git push --tags",
     "build:dts": "tsc -p configs/tsconfig.dts.json",
     "build:esm": "tsc -p configs/tsconfig.esm.json",
     "build:cjs": "tsc -p configs/tsconfig.cjs.json",
-    "build": "rm -rf dist && mkdir dist && npm run build:dts && npm run build:esm && npm run build:cjs && tsc test/index.spec.ts --noEmit",
+    "build": "rm -rf dist && mkdir dist && npm run build:dts && npm run build:esm && npm run build:cjs",
     "lint": "eslint .",
     "watch": "tsc -p . -w",
     "test": "jest",
+    "typecheck-test": "tsc test/index.spec.ts --noEmit",
     "coverage": "codecov",
     "type-coverage": "type-coverage --detail --strict --ignore-files **/dist/**"
   },

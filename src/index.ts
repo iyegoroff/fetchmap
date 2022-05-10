@@ -122,7 +122,6 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
 ) {
   type Input = Parameters<Fetch>[0]
   type Init = Parameters<Fetch>[1]
-  // type Resp = Awaited<AsyncResponse>
 
   type MapResponse<Resp extends BasicResponse> =
     | 'json'
@@ -215,7 +214,7 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
   /**
    * Non-throwing `fetch` wrapper
    *
-   * @param map An object to map `response.status` to `(response: Resp) => unknown` transform.
+   * @param map An object to map `response.status` to `<T>(response: Response) => T` transform.
    * Keys can be numbers + `ok` and `notOk`. If no mapping for received response status specified, it
    * will use `ok` transform for statuses in the inclusive range from 200 to 299 and `notOk`
    * otherwise. Both `ok` and `notOk` just return received `Response` object by default. Each
