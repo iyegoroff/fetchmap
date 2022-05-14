@@ -4,14 +4,14 @@
     "target": "es2018",
     "strict": true,
     "moduleResolution": "node",
-    "removeComments": true,
+    "outDir": "tmp",
+    "declaration": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "allowUnreachableCode": false,
     "noUncheckedIndexedAccess": true,
-    "stripInternal": true,
     "types": ["jest", "node"]
   }
 }
