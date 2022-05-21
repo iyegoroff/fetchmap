@@ -39,12 +39,22 @@ express()
 import { createFetchmap } from 'fetchmap'
 import fetch from 'node-fetch'
 
+const success = <T>(value: T) => ({ tag: 'success', success: value } as const)
+
 const fetchmap = createFetchmap(fetch)
 
-const json_success = await fetchmap({ ok: 'json' }, 'https://localhost:5005/json')
+const mock_data_validator = (data: unknown) => success(data)
+
+const json_success = await fetchmap(
+  { ok: { json: mock_data_validator } },
+  'https://localhost:5005/json'
+)
 expect(json_success).toEqual({ tag: 'success', success: { some: 'data' } })
 
-const json_success_only_200 = await fetchmap({ 200: 'json' }, 'https://localhost:5005/json')
+const json_success_only_200 = await fetchmap(
+  { 200: mock_data_validator },
+  'https://localhost:5005/json'
+)
 expect(json_success_only_200).toEqual({ tag: 'success', success: { some: 'data' } })
 
 const invalid_url_failure = await fetchmap({}, '1234')
