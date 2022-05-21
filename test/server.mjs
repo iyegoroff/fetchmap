@@ -1,8 +1,16 @@
 import express from 'express'
+import FormData from 'form-data'
 
 express()
   .get('/text', (req, res) => {
     res.send('ok')
+  })
+  .get('/form', (req, res) => {
+    const form = new FormData()
+    form.append('x', 'x')
+    form.append('y', 'y')
+    res.setHeader('Content-Type', 'multipart/form-data; boundary=' + form.getBoundary())
+    form.pipe(res)
   })
   .get('/json', (req, res) => {
     res.json({ some: 'data' })

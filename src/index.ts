@@ -123,13 +123,33 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
   type Input = Parameters<Fetch>[0]
   type Init = Parameters<Fetch>[1]
 
+  type SuccessResult<Success> = {
+    readonly tag: 'success'
+    readonly success: Success
+  }
+
+  type FailureResult<Failure> = {
+    readonly tag: 'failure'
+    readonly failure: Failure
+  }
+
+  type SuccessOf<ResultLike> = ResultLike extends SuccessResult<infer S> ? S : never
+  type FailureOf<ResultLike> = ResultLike extends FailureResult<infer F> ? F : never
+
+  type Result<Success = unknown, Failure = unknown> =
+    | SuccessResult<Success>
+    | FailureResult<Failure>
+
+  type MapResponseBody<Resp extends BasicResponse> =
+    | { readonly text: (text: string, response: Resp) => Result }
+    | { readonly json: (json: unknown, response: Resp) => Result }
+    | { readonly blob: (blob: Blob, response: Resp) => Result }
+    | { readonly arrayBuffer: (arrayBuffer: ArrayBuffer, response: Resp) => Result }
+    | { readonly formData: (formData: FormData, response: Resp) => Result }
+
   type MapResponse<Resp extends BasicResponse> =
-    | 'json'
-    | 'text'
-    | 'blob'
-    | 'arrayBuffer'
-    | 'formData'
-    | ((response: Resp) => unknown)
+    | MapResponseBody<Resp>
+    | ((response: Resp) => Result)
 
   type MultiMapResponse<Resp extends BasicResponse> = {
     readonly [code: number]: MapResponse<Resp>
@@ -137,20 +157,20 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
     readonly notOk: MapResponse<Resp>
   }
 
-  type MapResult = {
-    readonly json: unknown
-    readonly text: string
-    readonly blob: Blob
-    readonly arrayBuffer: ArrayBuffer
-    readonly formData: FormData
-  }
-
   type MapResultOf<Resp extends BasicResponse, Map extends MapResponse<Resp>> = Map extends (
     r: Resp
   ) => infer T
     ? T
-    : Map extends keyof MapResult
-    ? MapResult[Map]
+    : Map extends { readonly text: (b: string, r: Resp) => infer T }
+    ? T
+    : Map extends { readonly json: (b: unknown, r: Resp) => infer T }
+    ? T
+    : Map extends { readonly blob: (b: Blob, r: Resp) => infer T }
+    ? T
+    : Map extends { readonly arrayBuffer: (b: ArrayBuffer, r: Resp) => infer T }
+    ? T
+    : Map extends { readonly formData: (b: FormData, r: Resp) => infer T }
+    ? T
     : never
 
   type OkKeys<Resp extends BasicResponse, Map extends MultiMapResponse<Resp>> = (OkStatus | 'ok') &
@@ -166,28 +186,37 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
     Resp extends BasicResponse,
     Map extends MultiMapResponse<Resp>,
     SuccessKeys extends keyof Map = OkKeys<Resp, Map>
-  > = {
-    readonly tag: 'success'
-    readonly success: Map[SuccessKeys] extends MapResponse<Resp>
-      ? MapResultOf<Resp, Map[SuccessKeys]>
+  > = SuccessResult<
+    Map[SuccessKeys] extends MapResponse<Resp>
+      ? SuccessOf<MapResultOf<Resp, Map[SuccessKeys]>>
       : never
-  }
+  >
 
   type FetchFailureResult<
     Resp extends BasicResponse,
     Map extends MultiMapResponse<Resp>,
     FailureKeys extends keyof Map = NotOkKeys<Resp, Map>
-  > = {
-    readonly tag: 'failure'
-    readonly failure:
-      | { readonly clientError: unknown }
-      | { readonly mapError: unknown }
-      | {
-          readonly serverError: Map[FailureKeys] extends MapResponse<Resp>
-            ? MapResultOf<Resp, Map[FailureKeys]>
-            : never
-        }
-  }
+  > = FailureResult<
+    | ((
+        Map[keyof Map] extends MapResponse<Resp>
+          ? FailureOf<MapResultOf<Resp, Map[keyof Map]>>
+          : never
+      ) extends never
+        ? never
+        : {
+            readonly status: number
+            readonly validationError: Map[keyof Map] extends MapResponse<Resp>
+              ? FailureOf<MapResultOf<Resp, Map[keyof Map]>>
+              : never
+          })
+    | {
+        readonly serverError: Map[FailureKeys] extends MapResponse<Resp>
+          ? SuccessOf<MapResultOf<Resp, Map[FailureKeys]>>
+          : never
+      }
+    | { readonly clientError: unknown }
+    | { readonly mapError: unknown }
+  >
 
   type FetchResult<
     Resp extends BasicResponse,
@@ -195,46 +224,62 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
     Map extends MultiMapResponse<Resp> = {
       readonly [Key in keyof PartialMap | 'ok' | 'notOk']: PartialMap[Key] extends MapResponse<Resp>
         ? PartialMap[Key]
-        : (response: Resp) => Resp
+        : (response: Resp) => SuccessResult<Resp>
     }
   > = FetchSuccessResult<Resp, Map> | FetchFailureResult<Resp, Map>
 
   type PrettyType<V> = Extract<{ [K in keyof V]: V[K] }, unknown>
 
-  const serverErrorFailure = <T>(serverError: T) => failure({ serverError })
-
   const success = <T>(value: T) => ({ tag: 'success', success: value } as const)
   const failure = <T>(error: T) => ({ tag: 'failure', failure: error } as const)
 
-  const mapFun = <Resp extends BasicResponse>(response: Resp, map: MapResponse<Resp>) =>
-    typeof map === 'string' ? response[map]() : map(response)
+  const serverErrorFailure = <T>(serverError: T) => failure({ serverError })
+  const validationErrorFailure = <T>(validationError: T, status: number) =>
+    failure({ validationError, status })
 
-  const identity = <T>(x: T) => x
+  const mapFun = async <Resp extends BasicResponse>(response: Resp, map: MapResponse<Resp>) =>
+    typeof map === 'function'
+      ? map(response)
+      : 'json' in map
+      ? map.json(await response.json(), response)
+      : 'text' in map
+      ? map.text(await response.text(), response)
+      : 'blob' in map
+      ? map.blob(await response.blob(), response)
+      : 'arrayBuffer' in map
+      ? map.arrayBuffer(await response.arrayBuffer(), response)
+      : map.formData(await response.formData(), response)
 
   /**
    * Non-throwing `fetch` wrapper
    *
-   * @param map An object to map `response.status` to `<T>(response: Response) => T` transform.
-   * Keys can be numbers + `ok` and `notOk`. If no mapping for received response status specified, it
+   * @param map An object to map `response.status` to validating transform. Keys can be response
+   * status numbers + `ok` and `notOk`. If no mapping for received response status specified, it
    * will use `ok` transform for statuses in the inclusive range from 200 to 299 and `notOk`
-   * otherwise. Both `ok` and `notOk` just return received `Response` object by default. Each
-   * transform is a string literal that represents a body reading method (`json`, `text`, `blob`,
-   * `arrayBuffer`, `formData`) or a function that takes `Response` and returns something.
+   * otherwise. Both `ok` and `notOk` just return `SuccessResult` with received `Response` object by
+   * default. Each transform is a `(response: Response) => Result<Success, Failure>` function or an
+   * object that represents a mapping from body reading method (`json`, `text`, `blob`,
+   * `arrayBuffer`, `formData`) to `(body: BodyType, response: Response) => Result<Success, Failure>`
+   * validating transform.
    *
    * @param input `fetch` function first argument
    *
    * @param init `fetch` function second argument
    *
    * @returns Success or failure result.
-   * - If `fetch` function itself **did throw** an error then a **failure** result containing the
+   * - If `fetch` function itself **did throw** an error then a **failure** result containing an
    * object with `clientError` property set to thrown value will be returned.
-   * - If transform function **did throw** an error then a **failure** result containing the object
+   * - If validating transform **did throw** an error then a **failure** result containing an object
    * with `mapError` property set to thrown value will be returned.
+   * - If validating transform **did not throw** an error but **fail to validate** the received data
+   * then a **failure** result containing an object with `validationError` property set to
+   * validation error will be returned.
    * - If response status is **outside** inclusive range from 200 to 299 and transform function **did
-   * not throw** an error then a **failure** result containing the object with `serverError` property
-   * set to transformed value will be returned.
+   * not throw** an error and **succeed to validate** the received data then a **failure** result
+   * containing an object with `serverError` property set to transformed value will be returned.
    * - If response status is **inside** inclusive range from 200 to 299 and transform function **did
-   * not throw** an error then a **success** result containing the transformed value will be returned.
+   * not throw** an error and **succeed to validate** the received data then a **success** result
+   * containing the transformed value will be returned.
    */
   function fetchmap<Map extends Partial<MultiMapResponse<Awaited<ReturnType<Fetch>>>>>(
     map: Map,
@@ -253,9 +298,14 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
         const isOk = status >= 200 && status <= 299
 
         try {
-          return (isOk ? success : serverErrorFailure)(
-            await mapFun(response, map[status] ?? (isOk ? map.ok : map.notOk) ?? identity)
+          const validated = await mapFun(
+            response,
+            map[status] ?? (isOk ? map.ok : map.notOk) ?? success
           )
+
+          return validated.tag === 'success'
+            ? (isOk ? success : serverErrorFailure)(validated.success)
+            : validationErrorFailure(validated.failure, status)
         } catch (mapError) {
           return failure({ mapError })
         }
