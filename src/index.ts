@@ -204,41 +204,45 @@ type FetchFailureResult<
   FailureKeys extends keyof Map = NotOkKeys<Resp, Map>,
   SuccessKeys extends keyof Map = OkKeys<Resp, Map>
 > = FailureResult<
-  | {
-      readonly status: number
-      readonly validationError: FailureOf<
-        | (Map[SuccessKeys] extends MapJsonResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['json']>
-            : Map[SuccessKeys] extends MapBlobResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['blob']>
-            : Map[SuccessKeys] extends MapTextResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['text']>
-            : Map[SuccessKeys] extends MapFormDataResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['formData']>
-            : Map[SuccessKeys] extends MapArrayBufferResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
-            : Map[SuccessKeys] extends MapNoBodyResponse<Resp>
-            ? ReturnType<Map[SuccessKeys]['noBody']>
-            : Map[SuccessKeys] extends MapResponse<Resp>
-            ? MapResultOf<Resp, Map[SuccessKeys]>
-            : never)
-        | (Map[FailureKeys] extends MapJsonResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['json']>
-            : Map[FailureKeys] extends MapBlobResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['blob']>
-            : Map[FailureKeys] extends MapTextResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['text']>
-            : Map[FailureKeys] extends MapFormDataResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['formData']>
-            : Map[FailureKeys] extends MapArrayBufferResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['arrayBuffer']>
-            : Map[FailureKeys] extends MapNoBodyResponse<Resp>
-            ? ReturnType<Map[FailureKeys]['noBody']>
-            : Map[FailureKeys] extends MapResponse<Resp>
-            ? MapResultOf<Resp, Map[FailureKeys]>
-            : never)
-      >
-    }
+  | (Map[keyof Map] extends MapResponse<Resp>
+      ? FailureOf<MapResultOf<Resp, Map[keyof Map]>> extends never
+        ? never
+        : {
+            readonly status: number
+            readonly validationError: FailureOf<
+              | (Map[SuccessKeys] extends MapJsonResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['json']>
+                  : Map[SuccessKeys] extends MapBlobResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['blob']>
+                  : Map[SuccessKeys] extends MapTextResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['text']>
+                  : Map[SuccessKeys] extends MapFormDataResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['formData']>
+                  : Map[SuccessKeys] extends MapArrayBufferResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
+                  : Map[SuccessKeys] extends MapNoBodyResponse<Resp>
+                  ? ReturnType<Map[SuccessKeys]['noBody']>
+                  : Map[SuccessKeys] extends MapResponse<Resp>
+                  ? MapResultOf<Resp, Map[SuccessKeys]>
+                  : never)
+              | (Map[FailureKeys] extends MapJsonResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['json']>
+                  : Map[FailureKeys] extends MapBlobResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['blob']>
+                  : Map[FailureKeys] extends MapTextResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['text']>
+                  : Map[FailureKeys] extends MapFormDataResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['formData']>
+                  : Map[FailureKeys] extends MapArrayBufferResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['arrayBuffer']>
+                  : Map[FailureKeys] extends MapNoBodyResponse<Resp>
+                  ? ReturnType<Map[FailureKeys]['noBody']>
+                  : Map[FailureKeys] extends MapResponse<Resp>
+                  ? MapResultOf<Resp, Map[FailureKeys]>
+                  : never)
+            >
+          }
+      : never)
   | {
       readonly serverError: SuccessOf<
         Map[FailureKeys] extends MapJsonResponse<Resp>
