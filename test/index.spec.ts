@@ -69,7 +69,7 @@ describe('fetchmap', () => {
   })
 
   test('ok, ok is function', async () => {
-    const result = await fetchmap({ ok: (r) => success(r.status) }, url('json'))
+    const result = await fetchmap({ ok: { noBody: (r) => success(r.status) } }, url('json'))
     expect(result).toEqual<typeof result>(success(200))
   })
 
@@ -113,11 +113,11 @@ describe('fetchmap', () => {
   })
 
   test('fail, mapError, ok is function', async () => {
-    const ok = () => {
+    const noBody = () => {
       throw new Error('what?')
     }
 
-    const result = await fetchmap({ ok }, url('text'))
+    const result = await fetchmap({ ok: { noBody } }, url('text'))
     expect(result).toEqual<typeof result>(failure({ mapError: new Error('what?') }))
   })
 
@@ -152,7 +152,10 @@ describe('fetchmap', () => {
   })
 
   test('fail, serverError, notOk is function', async () => {
-    const result = await fetchmap({ notOk: (r) => success(r.status) }, url('server-error'))
+    const result = await fetchmap(
+      { notOk: { noBody: (r) => success(r.status) } },
+      url('server-error')
+    )
     expect(result).toEqual<typeof result>(failure({ serverError: 500 }))
   })
 
