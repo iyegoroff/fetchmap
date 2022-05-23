@@ -162,31 +162,19 @@ type MultiMapResponse<Resp extends BasicResponse> = {
 type MapResultOf<Resp extends BasicResponse, Map extends MapResponse<Resp>> = Map extends {
   readonly noBody: (r: Resp) => infer T
 }
-  ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'text') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : Map extends {
       readonly text: (b: string, r: Resp) => infer T
     }
-  ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : Map extends { readonly json: (b: unknown, r: Resp) => infer T }
-  ? ('text' | 'blob' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : Map extends { readonly blob: (b: Blob, r: Resp) => infer T }
-  ? ('json' | 'text' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : Map extends { readonly arrayBuffer: (b: ArrayBuffer, r: Resp) => infer T }
-  ? ('json' | 'blob' | 'text' | 'formData' | 'noBody') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : Map extends { readonly formData: (b: FormData, r: Resp) => infer T }
-  ? ('json' | 'blob' | 'arrayBuffer' | 'text' | 'noBody') & keyof Map extends never
-    ? T
-    : never
+  ? T
   : never
 
 type OkKeys<Resp extends BasicResponse, Map extends MultiMapResponse<Resp>> = (OkStatus | 'ok') &
