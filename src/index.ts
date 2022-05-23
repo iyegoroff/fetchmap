@@ -143,7 +143,9 @@ type MapFormDataResponse<Resp extends BasicResponse> = {
   readonly formData: (formData: FormData, response: Resp) => Result
 }
 
-type MapNoBodyResponse<Resp extends BasicResponse> = { readonly noBody: (response: Resp) => Result }
+type MapNoBodyResponse<Resp extends BasicResponse> = {
+  readonly noBody: (response: Resp) => Result
+}
 
 type MapResponse<Resp extends BasicResponse> =
   | MapTextResponse<Resp>
@@ -162,19 +164,29 @@ type MultiMapResponse<Resp extends BasicResponse> = {
 type MapResultOf<Resp extends BasicResponse, Map extends MapResponse<Resp>> = Map extends {
   readonly noBody: (r: Resp) => infer T
 }
-  ? T
-  : Map extends {
-      readonly text: (b: string, r: Resp) => infer T
-    }
-  ? T
+  ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'text') & keyof Map extends never
+    ? T
+    : never
+  : Map extends { readonly text: (b: string, r: Resp) => infer T }
+  ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
+    ? T
+    : never
   : Map extends { readonly json: (b: unknown, r: Resp) => infer T }
-  ? T
+  ? ('text' | 'blob' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
+    ? T
+    : never
   : Map extends { readonly blob: (b: Blob, r: Resp) => infer T }
-  ? T
+  ? ('json' | 'text' | 'arrayBuffer' | 'formData' | 'noBody') & keyof Map extends never
+    ? T
+    : never
   : Map extends { readonly arrayBuffer: (b: ArrayBuffer, r: Resp) => infer T }
-  ? T
+  ? ('json' | 'blob' | 'text' | 'formData' | 'noBody') & keyof Map extends never
+    ? T
+    : never
   : Map extends { readonly formData: (b: FormData, r: Resp) => infer T }
-  ? T
+  ? ('json' | 'blob' | 'arrayBuffer' | 'text' | 'noBody') & keyof Map extends never
+    ? T
+    : never
   : never
 
 type OkKeys<Resp extends BasicResponse, Map extends MultiMapResponse<Resp>> = (OkStatus | 'ok') &
