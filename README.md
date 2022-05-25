@@ -21,7 +21,7 @@ npm i fetchmap
 
 ## Description
 
-This is a simple wrapper for a `fetch`-like function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `<T>(response: Response) => T` transform and standard `fetch` arguments.
+This is a simple wrapper for a `fetch`-like function that catches all possible exceptions and returns a 'success or failure' wrapped value. It takes an object to map `response.status` to `<T, U>(body: U, response: Response) => T` transform and standard `fetch` arguments.
 
 ## Example
 
@@ -73,7 +73,7 @@ expect(not_found_error_with_request_init).toEqual({ tag: 'failure', failure: { s
 
 ## Usage
 
-See [test](/test) or [playground](https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBAbzgYygUwIYzQMTTZACxAzDgF84AzKCEOAcivyJLAYCgPkIA7AZ3jMCxUnAC8KdFlwtRYABTCiASi48B8AK5QANhMaEYMMAC4A9Od0RkGXYQiDTAVgAMr55259BcAFZaggBKaPyQAmgGyvIKCOQANHA6umremv78fADKWsjIofxRcmyxcBAA1qaMfpm8DBSJyakavgBG1q05eQUAgrwAJgAqaAAeMDgYwLo6kZLRJUgVVQztEK0MibwQMADylYzYY-UJSXrNPkJavMgwwNm5+fyFc8WkpUtwClAqEgB8cFAAHSCLCBBqnFLqC5wEBaXS3MC6NAAWVIz2or0UCA4cFxcAATO5lhgoFAMABPABCWiozCgGxxeIALK4mcsqNAQAARLAYBl4sr7BiHGD8vFbXb7L4-cT-IEwclgNAcE5NKHpdAARy0oRgAEleMBdmAYOj5m84o09IkkCB8A5+ssAAo7LKDDZSND9NC8W52fjLYDXabe45qIA)
+See [test](/test) or [playground](https://www.typescriptlang.org/play?jsx=0#code/JYWwDg9gTgLgBAbzgYygUwIYzQMTTZACxAzDgF84AzKCEOAcivyJLAYCgPkIA7AZ3j8ArsmRp+-OAF44AHgAqAPgAUANwwAbYWgBccBQEoZSuCqQwMAc30MRYifwYAaOPfGT9G7WgpwMUjwCMIbcfILUGMDa6DLyyipoULRQ+kYmZhbWtlRRMWgukdHC6PpJKX4BKOEhXEERzATEpHGomNh4TWwqjUShYcFwJZpxDIQwMGC6APTTmhDIWoQQgroArAAMG2ucAxEAVsKCAEoSkAK+sr3NYObkrsP99fAgCwDWACJYGABqWsAAEyw0DiKiBln0wl4b14EAA7rxjNJTOCMDJpLIGMBeN5AXBUQBCBhwAD8RXyKixOP+AOJVWexn07kc5nx3woTxqcH2-D4f00gKwaABcQwcKi8Gu3SQEDe+iQPL4+leyE+335gpgIMo9yGUE0-WAVDMit4GvBwoAdJYrOjMczJAxjAgOHA3dUBBBNGhLfMrJSHfxdIVTeahQDLYHQpQ0Jp+L4Xe6Pbzvb6IP6mHkSnoQ7yzTTw5bcsV0NG6lyAEbzCsAZVEHn4AEFeACFGgAB4wHBZ2JXFg3Vmy+VwKsQCv6dsZQMqdvGXWwmAAeTliDg2E7E6n9ZZs78use5cGsIAQhAAQBPOsOSRxKWkQcrpAns-n-QqKBI0zTqCRywwI5zhQDz6pygwgMImgwMAYDegAsqQUh9l096Ju6ABMWzDhgyQYOex7CFQzCpHAk7Im426SDOc7OK67oACwbHRw5UNAIBfBCJFbte-BUUBtFukOq7rjAm5kdOu73PxcALsuw7Pheb4flxDbvta55gGgc4cPuIGHhE6AAI46IIACSvDAEuYAwIh1D9tKOmaK4SAgPgywArYAAKi41gohRtACaC8FBWhBow2LINoAXEuQoRAA)
 
 ## Misc
 

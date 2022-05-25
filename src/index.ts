@@ -108,6 +108,7 @@ type BasicResponse = {
   readonly json: () => Promise<unknown>
   readonly text: () => Promise<string>
 }
+
 type SuccessResult<Success> = {
   readonly tag: 'success'
   readonly success: Success
@@ -244,6 +245,7 @@ type NotOkKeys<
 
 type FetchFailureResult<
   Resp extends BasicResponse,
+  RawMap extends Partial<MultiMapResponse<Resp>>,
   Map extends MultiMapResponse<Resp>,
   FailureKeys extends keyof Map = NotOkKeys<Resp, Map>,
   SuccessKeys extends keyof Map = OkKeys<Resp, Map>
@@ -306,7 +308,7 @@ type FetchFailureResult<
       >
     }
   | { readonly clientError: unknown }
-  | { readonly mapError: unknown }
+  | (RawMap extends Record<string, never> ? never : { readonly mapError: unknown })
 >
 
 type FetchSuccessResult<
@@ -341,7 +343,7 @@ type FetchResult<
       ? PartialMap[Key]
       : { readonly noBody: (response: Resp) => SuccessResult<Resp> }
   }
-> = FetchSuccessResult<Resp, Map> | FetchFailureResult<Resp, Map>
+> = FetchSuccessResult<Resp, Map> | FetchFailureResult<Resp, PartialMap, Map>
 
 type PrettyType<V> = Extract<{ [K in keyof V]: V[K] }, unknown>
 
@@ -446,3 +448,8 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
 
   return fetchmap
 }
+
+const s = {}
+type X<T> = T extends Record<string, never> ? 1 : 2
+
+type S = X<{ x: 1 }>
