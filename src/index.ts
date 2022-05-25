@@ -123,28 +123,63 @@ type FailureOf<ResultLike> = ResultLike extends FailureResult<infer F> ? F : nev
 
 type Result<Success = unknown, Failure = unknown> = SuccessResult<Success> | FailureResult<Failure>
 
+// source: https://github.com/microsoft/TypeScript/issues/38646#issuecomment-1054510795
+type NonUndefined<T> = T extends unknown
+  ? { readonly [K in keyof T as T[K] extends undefined ? never : K]: Exclude<T[K], undefined> }
+  : never
+
 type MapTextResponse<Resp extends BasicResponse> = {
-  readonly text: (text: string, response: Resp) => Result
+  readonly text: (body: string, response: Resp) => Result
+  readonly json?: undefined
+  readonly blob?: undefined
+  readonly arrayBuffer?: undefined
+  readonly formData?: undefined
+  readonly noBody?: undefined
 }
 
 type MapJsonResponse<Resp extends BasicResponse> = {
-  readonly json: (json: unknown, response: Resp) => Result
+  readonly json: (body: unknown, response: Resp) => Result
+  readonly text?: undefined
+  readonly blob?: undefined
+  readonly arrayBuffer?: undefined
+  readonly formData?: undefined
+  readonly noBody?: undefined
 }
 
 type MapBlobResponse<Resp extends BasicResponse> = {
-  readonly blob: (blob: Blob, response: Resp) => Result
+  readonly blob: (body: Blob, response: Resp) => Result
+  readonly json?: undefined
+  readonly text?: undefined
+  readonly arrayBuffer?: undefined
+  readonly formData?: undefined
+  readonly noBody?: undefined
 }
 
 type MapArrayBufferResponse<Resp extends BasicResponse> = {
-  readonly arrayBuffer: (arrayBuffer: ArrayBuffer, response: Resp) => Result
+  readonly arrayBuffer: (body: ArrayBuffer, response: Resp) => Result
+  readonly json?: undefined
+  readonly blob?: undefined
+  readonly text?: undefined
+  readonly formData?: undefined
+  readonly noBody?: undefined
 }
 
 type MapFormDataResponse<Resp extends BasicResponse> = {
-  readonly formData: (formData: FormData, response: Resp) => Result
+  readonly formData: (body: FormData, response: Resp) => Result
+  readonly json?: undefined
+  readonly blob?: undefined
+  readonly arrayBuffer?: undefined
+  readonly text?: undefined
+  readonly noBody?: undefined
 }
 
 type MapNoBodyResponse<Resp extends BasicResponse> = {
   readonly noBody: (response: Resp) => Result
+  readonly json?: undefined
+  readonly blob?: undefined
+  readonly arrayBuffer?: undefined
+  readonly formData?: undefined
+  readonly text?: undefined
 }
 
 type MapResponse<Resp extends BasicResponse> =
@@ -161,7 +196,16 @@ type MultiMapResponse<Resp extends BasicResponse> = {
   readonly notOk: MapResponse<Resp>
 }
 
-type MapResultOf<Resp extends BasicResponse, Map extends MapResponse<Resp>> = Map extends {
+type InternalMultiMapResponse<Resp extends BasicResponse> = {
+  readonly [code: number]: NonUndefined<MapResponse<Resp>>
+  readonly ok: NonUndefined<MapResponse<Resp>>
+  readonly notOk: NonUndefined<MapResponse<Resp>>
+}
+
+type MapResultOf<
+  Resp extends BasicResponse,
+  Map extends NonUndefined<MapResponse<Resp>>
+> = Map extends {
   readonly noBody: (r: Resp) => infer T
 }
   ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'text') & keyof Map extends never
@@ -204,40 +248,39 @@ type FetchFailureResult<
   FailureKeys extends keyof Map = NotOkKeys<Resp, Map>,
   SuccessKeys extends keyof Map = OkKeys<Resp, Map>
 > = FailureResult<
-  | (Map[keyof Map] extends MapResponse<Resp>
+  | (Map[keyof Map] extends NonUndefined<MapResponse<Resp>>
       ? FailureOf<MapResultOf<Resp, Map[keyof Map]>> extends never
         ? never
         : {
-            readonly status: number
             readonly validationError: FailureOf<
-              | (Map[SuccessKeys] extends MapJsonResponse<Resp>
+              | (Map[SuccessKeys] extends NonUndefined<MapJsonResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['json']>
-                  : Map[SuccessKeys] extends MapBlobResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapBlobResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['blob']>
-                  : Map[SuccessKeys] extends MapTextResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapTextResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['text']>
-                  : Map[SuccessKeys] extends MapFormDataResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapFormDataResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['formData']>
-                  : Map[SuccessKeys] extends MapArrayBufferResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
-                  : Map[SuccessKeys] extends MapNoBodyResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
                   ? ReturnType<Map[SuccessKeys]['noBody']>
-                  : Map[SuccessKeys] extends MapResponse<Resp>
+                  : Map[SuccessKeys] extends NonUndefined<MapResponse<Resp>>
                   ? MapResultOf<Resp, Map[SuccessKeys]>
                   : never)
-              | (Map[FailureKeys] extends MapJsonResponse<Resp>
+              | (Map[FailureKeys] extends NonUndefined<MapJsonResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['json']>
-                  : Map[FailureKeys] extends MapBlobResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapBlobResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['blob']>
-                  : Map[FailureKeys] extends MapTextResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapTextResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['text']>
-                  : Map[FailureKeys] extends MapFormDataResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapFormDataResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['formData']>
-                  : Map[FailureKeys] extends MapArrayBufferResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['arrayBuffer']>
-                  : Map[FailureKeys] extends MapNoBodyResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
                   ? ReturnType<Map[FailureKeys]['noBody']>
-                  : Map[FailureKeys] extends MapResponse<Resp>
+                  : Map[FailureKeys] extends NonUndefined<MapResponse<Resp>>
                   ? MapResultOf<Resp, Map[FailureKeys]>
                   : never)
             >
@@ -245,19 +288,19 @@ type FetchFailureResult<
       : never)
   | {
       readonly serverError: SuccessOf<
-        Map[FailureKeys] extends MapJsonResponse<Resp>
+        Map[FailureKeys] extends NonUndefined<MapJsonResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['json']>
-          : Map[FailureKeys] extends MapBlobResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapBlobResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['blob']>
-          : Map[FailureKeys] extends MapTextResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapTextResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['text']>
-          : Map[FailureKeys] extends MapFormDataResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapFormDataResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['formData']>
-          : Map[FailureKeys] extends MapArrayBufferResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['arrayBuffer']>
-          : Map[FailureKeys] extends MapNoBodyResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
           ? ReturnType<Map[FailureKeys]['noBody']>
-          : Map[FailureKeys] extends MapResponse<Resp>
+          : Map[FailureKeys] extends NonUndefined<MapResponse<Resp>>
           ? MapResultOf<Resp, Map[FailureKeys]>
           : never
       >
@@ -272,19 +315,19 @@ type FetchSuccessResult<
   SuccessKeys extends keyof Map = OkKeys<Resp, Map>
 > = SuccessResult<
   SuccessOf<
-    Map[SuccessKeys] extends MapJsonResponse<Resp>
+    Map[SuccessKeys] extends NonUndefined<MapJsonResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['json']>
-      : Map[SuccessKeys] extends MapBlobResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapBlobResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['blob']>
-      : Map[SuccessKeys] extends MapTextResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapTextResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['text']>
-      : Map[SuccessKeys] extends MapFormDataResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapFormDataResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['formData']>
-      : Map[SuccessKeys] extends MapArrayBufferResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
-      : Map[SuccessKeys] extends MapNoBodyResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
       ? ReturnType<Map[SuccessKeys]['noBody']>
-      : Map[SuccessKeys] extends MapResponse<Resp>
+      : Map[SuccessKeys] extends NonUndefined<MapResponse<Resp>>
       ? MapResultOf<Resp, Map[SuccessKeys]>
       : never
   >
@@ -320,19 +363,21 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
   const failure = <T>(error: T) => ({ tag: 'failure', failure: error } as const)
 
   const serverErrorFailure = <T>(serverError: T) => failure({ serverError })
-  const validationErrorFailure = <T>(validationError: T, status: number) =>
-    failure({ validationError, status })
+  const validationErrorFailure = <T>(validationError: T) => failure({ validationError })
 
-  const mapFun = async <Resp extends BasicResponse>(response: Resp, map: MapResponse<Resp>) =>
-    'noBody' in map
+  const mapFun = async <Resp extends BasicResponse>(
+    response: Resp,
+    map: MapResponse<Resp> = { noBody: success }
+  ) =>
+    map.noBody !== undefined
       ? map.noBody(response)
-      : 'json' in map
+      : map.json !== undefined
       ? map.json(await response.json(), response)
-      : 'text' in map
+      : map.text !== undefined
       ? map.text(await response.text(), response)
-      : 'blob' in map
+      : map.blob !== undefined
       ? map.blob(await response.blob(), response)
-      : 'arrayBuffer' in map
+      : map.arrayBuffer !== undefined
       ? map.arrayBuffer(await response.arrayBuffer(), response)
       : map.formData(await response.formData(), response)
 
@@ -343,10 +388,10 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
    * status numbers + `ok` and `notOk`. If no mapping for received response status specified, it
    * will use `ok` transform for statuses in the inclusive range from 200 to 299 and `notOk`
    * otherwise. Both `ok` and `notOk` just return `SuccessResult` with received `Response` object by
-   * default. Each transform is a `(response: Response) => Result<Success, Failure>` function or an
-   * object that represents a mapping from body reading method (`json`, `text`, `blob`,
-   * `arrayBuffer`, `formData`) to `(body: BodyType, response: Response) => Result<Success, Failure>`
-   * validating transform.
+   * default. Each transform is an object that represents a mapping from body reading method
+   * (`json`, `text`, `blob`, `arrayBuffer`, `formData`) to
+   * `(body: BodyType, response: Response) => Result<Success, Failure>` validating transform or an
+   * object without body mapping - `{ noBody: (response: Response) => Result<Success, Failure> }`
    *
    * @param input `fetch` function first argument
    *
@@ -367,35 +412,36 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
    * not throw** an error and **succeed to validate** the received data then a **success** result
    * containing the transformed value will be returned.
    */
-  function fetchmap<
+  async function fetchmap<
     Response extends Awaited<ReturnType<Fetch>>,
     Map extends Partial<MultiMapResponse<Response>>
   >(map: Map, input: Input, init?: Init): Promise<PrettyType<FetchResult<Response, Map>>>
 
-  function fetchmap(
-    map: Partial<MultiMapResponse<BasicResponse>>,
+  async function fetchmap(
+    map: Partial<InternalMultiMapResponse<BasicResponse>>,
     input: Input,
     init?: Init
-  ): Promise<FetchResult<BasicResponse, MultiMapResponse<BasicResponse>>> {
-    return fetch(input, init)
-      .then(async (response) => {
-        const { status } = response
-        const isOk = status >= 200 && status <= 299
+  ): Promise<FetchResult<BasicResponse, InternalMultiMapResponse<BasicResponse>>> {
+    try {
+      const response = await fetch(input, init)
+      const { status } = response
+      const isOk = status >= 200 && status <= 299
 
-        try {
-          const validated = await mapFun(
-            response,
-            map[status] ?? (isOk ? map.ok : map.notOk) ?? { noBody: success }
-          )
+      try {
+        const validated = await mapFun(
+          response,
+          map[status] === undefined ? (isOk ? map.ok : map.notOk) : map[status]
+        )
 
-          return validated.tag === 'success'
-            ? (isOk ? success : serverErrorFailure)(validated.success)
-            : validationErrorFailure(validated.failure, status)
-        } catch (mapError) {
-          return failure({ mapError })
-        }
-      })
-      .catch((clientError: unknown) => failure({ clientError }))
+        return validated.tag === 'success'
+          ? (isOk ? success : serverErrorFailure)(validated.success)
+          : validationErrorFailure(validated.failure)
+      } catch (mapError) {
+        return failure({ mapError })
+      }
+    } catch (clientError) {
+      return failure({ clientError })
+    }
   }
 
   return fetchmap

@@ -166,6 +166,6 @@ describe('fetchmap', () => {
 
   test('fail, validationError, ok is json', async () => {
     const result = await fetchmap({ ok: { json: () => failure('fail') } }, url('json'))
-    expect(result).toEqual<typeof result>(failure({ validationError: 'fail', status: 200 }))
+    expect(result).toEqual<typeof result>(failure({ validationError: 'fail' }))
   })
 })
