@@ -373,10 +373,10 @@ type PrettyType<V> = Extract<{ [K in keyof V]: V[K] }, unknown>
  * `BasicResponse` requires only `status`, `arrayBuffer`, `blob`, `formData`, `json` and `text`
  * properties of standard `Response` type to be defined.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-export function createFetchmap<Fetch extends (input: any, init?: any) => Promise<BasicResponse>>(
-  fetch: Fetch
-) {
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function createFetchmap<
+  Fetch extends (input: never, init?: never) => Promise<BasicResponse>
+>(fetch: Fetch) {
   type Input = Parameters<Fetch>[0]
   type Init = Parameters<Fetch>[1]
 
