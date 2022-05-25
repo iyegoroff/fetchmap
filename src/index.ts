@@ -448,8 +448,3 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
 
   return fetchmap
 }
-
-const s = {}
-type X<T> = T extends Record<string, never> ? 1 : 2
-
-type S = X<{ x: 1 }>
