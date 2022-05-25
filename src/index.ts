@@ -124,13 +124,11 @@ type FailureOf<ResultLike> = ResultLike extends FailureResult<infer F> ? F : nev
 
 type Result<Success = unknown, Failure = unknown> = SuccessResult<Success> | FailureResult<Failure>
 
-// source: https://github.com/microsoft/TypeScript/issues/38646#issuecomment-1054510795
-type NonUndefined<T> = T extends unknown
-  ? { readonly [K in keyof T as T[K] extends undefined ? never : K]: Exclude<T[K], undefined> }
-  : never
-
-type MapTextResponse<Resp extends BasicResponse> = {
+type MapTextResponseBase<Resp extends BasicResponse> = {
   readonly text: (body: string, response: Resp) => Result
+}
+
+type MapTextResponse<Resp extends BasicResponse> = MapTextResponseBase<Resp> & {
   readonly json?: undefined
   readonly blob?: undefined
   readonly arrayBuffer?: undefined
@@ -138,8 +136,11 @@ type MapTextResponse<Resp extends BasicResponse> = {
   readonly noBody?: undefined
 }
 
-type MapJsonResponse<Resp extends BasicResponse> = {
+type MapJsonResponseBase<Resp extends BasicResponse> = {
   readonly json: (body: unknown, response: Resp) => Result
+}
+
+type MapJsonResponse<Resp extends BasicResponse> = MapJsonResponseBase<Resp> & {
   readonly text?: undefined
   readonly blob?: undefined
   readonly arrayBuffer?: undefined
@@ -147,8 +148,11 @@ type MapJsonResponse<Resp extends BasicResponse> = {
   readonly noBody?: undefined
 }
 
-type MapBlobResponse<Resp extends BasicResponse> = {
+type MapBlobResponseBase<Resp extends BasicResponse> = {
   readonly blob: (body: Blob, response: Resp) => Result
+}
+
+type MapBlobResponse<Resp extends BasicResponse> = MapBlobResponseBase<Resp> & {
   readonly json?: undefined
   readonly text?: undefined
   readonly arrayBuffer?: undefined
@@ -156,8 +160,11 @@ type MapBlobResponse<Resp extends BasicResponse> = {
   readonly noBody?: undefined
 }
 
-type MapArrayBufferResponse<Resp extends BasicResponse> = {
+type MapArrayBufferResponseBase<Resp extends BasicResponse> = {
   readonly arrayBuffer: (body: ArrayBuffer, response: Resp) => Result
+}
+
+type MapArrayBufferResponse<Resp extends BasicResponse> = MapArrayBufferResponseBase<Resp> & {
   readonly json?: undefined
   readonly blob?: undefined
   readonly text?: undefined
@@ -165,8 +172,11 @@ type MapArrayBufferResponse<Resp extends BasicResponse> = {
   readonly noBody?: undefined
 }
 
-type MapFormDataResponse<Resp extends BasicResponse> = {
+type MapFormDataResponseBase<Resp extends BasicResponse> = {
   readonly formData: (body: FormData, response: Resp) => Result
+}
+
+type MapFormDataResponse<Resp extends BasicResponse> = MapFormDataResponseBase<Resp> & {
   readonly json?: undefined
   readonly blob?: undefined
   readonly arrayBuffer?: undefined
@@ -174,14 +184,25 @@ type MapFormDataResponse<Resp extends BasicResponse> = {
   readonly noBody?: undefined
 }
 
-type MapNoBodyResponse<Resp extends BasicResponse> = {
+type MapNoBodyResponseBase<Resp extends BasicResponse> = {
   readonly noBody: (response: Resp) => Result
+}
+
+type MapNoBodyResponse<Resp extends BasicResponse> = MapNoBodyResponseBase<Resp> & {
   readonly json?: undefined
   readonly blob?: undefined
   readonly arrayBuffer?: undefined
   readonly formData?: undefined
   readonly text?: undefined
 }
+
+type MapResponseBase<Resp extends BasicResponse> =
+  | MapTextResponseBase<Resp>
+  | MapJsonResponseBase<Resp>
+  | MapBlobResponseBase<Resp>
+  | MapArrayBufferResponseBase<Resp>
+  | MapFormDataResponseBase<Resp>
+  | MapNoBodyResponseBase<Resp>
 
 type MapResponse<Resp extends BasicResponse> =
   | MapTextResponse<Resp>
@@ -198,15 +219,12 @@ type MultiMapResponse<Resp extends BasicResponse> = {
 }
 
 type InternalMultiMapResponse<Resp extends BasicResponse> = {
-  readonly [code: number]: NonUndefined<MapResponse<Resp>>
-  readonly ok: NonUndefined<MapResponse<Resp>>
-  readonly notOk: NonUndefined<MapResponse<Resp>>
+  readonly [code: number]: MapResponseBase<Resp>
+  readonly ok: MapResponseBase<Resp>
+  readonly notOk: MapResponseBase<Resp>
 }
 
-type MapResultOf<
-  Resp extends BasicResponse,
-  Map extends NonUndefined<MapResponse<Resp>>
-> = Map extends {
+type MapResultOf<Resp extends BasicResponse, Map extends MapResponseBase<Resp>> = Map extends {
   readonly noBody: (r: Resp) => infer T
 }
   ? ('json' | 'blob' | 'arrayBuffer' | 'formData' | 'text') & keyof Map extends never
@@ -248,41 +266,42 @@ type FetchFailureResult<
   RawMap extends Partial<MultiMapResponse<Resp>>,
   Map extends MultiMapResponse<Resp>,
   FailureKeys extends keyof Map = NotOkKeys<Resp, Map>,
-  SuccessKeys extends keyof Map = OkKeys<Resp, Map>
+  SuccessKeys extends keyof Map = OkKeys<Resp, Map>,
+  M extends Map[keyof Map] = Map[keyof Map]
 > = FailureResult<
-  | (Map[keyof Map] extends NonUndefined<MapResponse<Resp>>
-      ? FailureOf<MapResultOf<Resp, Map[keyof Map]>> extends never
+  | (M extends MapResponseBase<Resp>
+      ? FailureOf<MapResultOf<Resp, M>> extends never
         ? never
         : {
             readonly validationError: FailureOf<
-              | (Map[SuccessKeys] extends NonUndefined<MapJsonResponse<Resp>>
+              | (Map[SuccessKeys] extends MapJsonResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['json']>
-                  : Map[SuccessKeys] extends NonUndefined<MapBlobResponse<Resp>>
+                  : Map[SuccessKeys] extends MapBlobResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['blob']>
-                  : Map[SuccessKeys] extends NonUndefined<MapTextResponse<Resp>>
+                  : Map[SuccessKeys] extends MapTextResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['text']>
-                  : Map[SuccessKeys] extends NonUndefined<MapFormDataResponse<Resp>>
+                  : Map[SuccessKeys] extends MapFormDataResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['formData']>
-                  : Map[SuccessKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
+                  : Map[SuccessKeys] extends MapArrayBufferResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
-                  : Map[SuccessKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
+                  : Map[SuccessKeys] extends MapNoBodyResponseBase<Resp>
                   ? ReturnType<Map[SuccessKeys]['noBody']>
-                  : Map[SuccessKeys] extends NonUndefined<MapResponse<Resp>>
+                  : Map[SuccessKeys] extends MapResponseBase<Resp>
                   ? MapResultOf<Resp, Map[SuccessKeys]>
                   : never)
-              | (Map[FailureKeys] extends NonUndefined<MapJsonResponse<Resp>>
+              | (Map[FailureKeys] extends MapJsonResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['json']>
-                  : Map[FailureKeys] extends NonUndefined<MapBlobResponse<Resp>>
+                  : Map[FailureKeys] extends MapBlobResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['blob']>
-                  : Map[FailureKeys] extends NonUndefined<MapTextResponse<Resp>>
+                  : Map[FailureKeys] extends MapTextResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['text']>
-                  : Map[FailureKeys] extends NonUndefined<MapFormDataResponse<Resp>>
+                  : Map[FailureKeys] extends MapFormDataResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['formData']>
-                  : Map[FailureKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
+                  : Map[FailureKeys] extends MapArrayBufferResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['arrayBuffer']>
-                  : Map[FailureKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
+                  : Map[FailureKeys] extends MapNoBodyResponseBase<Resp>
                   ? ReturnType<Map[FailureKeys]['noBody']>
-                  : Map[FailureKeys] extends NonUndefined<MapResponse<Resp>>
+                  : Map[FailureKeys] extends MapResponseBase<Resp>
                   ? MapResultOf<Resp, Map[FailureKeys]>
                   : never)
             >
@@ -290,19 +309,19 @@ type FetchFailureResult<
       : never)
   | {
       readonly serverError: SuccessOf<
-        Map[FailureKeys] extends NonUndefined<MapJsonResponse<Resp>>
+        Map[FailureKeys] extends MapJsonResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['json']>
-          : Map[FailureKeys] extends NonUndefined<MapBlobResponse<Resp>>
+          : Map[FailureKeys] extends MapBlobResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['blob']>
-          : Map[FailureKeys] extends NonUndefined<MapTextResponse<Resp>>
+          : Map[FailureKeys] extends MapTextResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['text']>
-          : Map[FailureKeys] extends NonUndefined<MapFormDataResponse<Resp>>
+          : Map[FailureKeys] extends MapFormDataResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['formData']>
-          : Map[FailureKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
+          : Map[FailureKeys] extends MapArrayBufferResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['arrayBuffer']>
-          : Map[FailureKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
+          : Map[FailureKeys] extends MapNoBodyResponseBase<Resp>
           ? ReturnType<Map[FailureKeys]['noBody']>
-          : Map[FailureKeys] extends NonUndefined<MapResponse<Resp>>
+          : Map[FailureKeys] extends MapResponseBase<Resp>
           ? MapResultOf<Resp, Map[FailureKeys]>
           : never
       >
@@ -317,19 +336,19 @@ type FetchSuccessResult<
   SuccessKeys extends keyof Map = OkKeys<Resp, Map>
 > = SuccessResult<
   SuccessOf<
-    Map[SuccessKeys] extends NonUndefined<MapJsonResponse<Resp>>
+    Map[SuccessKeys] extends MapJsonResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['json']>
-      : Map[SuccessKeys] extends NonUndefined<MapBlobResponse<Resp>>
+      : Map[SuccessKeys] extends MapBlobResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['blob']>
-      : Map[SuccessKeys] extends NonUndefined<MapTextResponse<Resp>>
+      : Map[SuccessKeys] extends MapTextResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['text']>
-      : Map[SuccessKeys] extends NonUndefined<MapFormDataResponse<Resp>>
+      : Map[SuccessKeys] extends MapFormDataResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['formData']>
-      : Map[SuccessKeys] extends NonUndefined<MapArrayBufferResponse<Resp>>
+      : Map[SuccessKeys] extends MapArrayBufferResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['arrayBuffer']>
-      : Map[SuccessKeys] extends NonUndefined<MapNoBodyResponse<Resp>>
+      : Map[SuccessKeys] extends MapNoBodyResponseBase<Resp>
       ? ReturnType<Map[SuccessKeys]['noBody']>
-      : Map[SuccessKeys] extends NonUndefined<MapResponse<Resp>>
+      : Map[SuccessKeys] extends MapResponseBase<Resp>
       ? MapResultOf<Resp, Map[SuccessKeys]>
       : never
   >
