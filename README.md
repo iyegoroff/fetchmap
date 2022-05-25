@@ -64,7 +64,7 @@ expect(invalid_url_failure).toEqual({
 })
 
 const not_found_error_with_request_init = await fetchmap(
-  { notOk: ({ status }) => success(status) },
+  { notOk: { noBody: ({ status }) => success(status) } },
   'https://localhost:5005/invalid',
   { method: 'POST', credentials: 'include' }
 )
