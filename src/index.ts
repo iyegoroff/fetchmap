@@ -411,8 +411,9 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
    * otherwise. Both `ok` and `notOk` just return `SuccessResult` with received `Response` object by
    * default. Each transform is an object that represents a mapping from body reading method
    * (`json`, `text`, `blob`, `arrayBuffer`, `formData`) to
-   * `(body: BodyType, response: Response) => Result<Success, Failure>` validating transform or an
-   * object without body mapping - `{ noBody: (response: Response) => Result<Success, Failure> }`
+   * `(body: BodyType, response: Response) => Result` validating transform or an object without
+   * body mapping - `{ noBody: (response: Response) => Result }`. If validation fails it should
+   * return `FailureResult` and `SuccessResult` otherwise.
    *
    * @param input `fetch` function first argument
    *
@@ -421,17 +422,17 @@ export function createFetchmap<Fetch extends (input: any, init?: any) => Promise
    * @returns Success or failure result.
    * - If `fetch` function itself **did throw** an error then a **failure** result containing an
    * object with `clientError` property set to thrown value will be returned.
-   * - If validating transform **did throw** an error then a **failure** result containing an object
-   * with `mapError` property set to thrown value will be returned.
+   * - If body reading method or validating transform **did throw** an error then a **failure**
+   * result containing an object with `mapError` property set to thrown value will be returned.
    * - If validating transform **did not throw** an error but **fail to validate** the received data
    * then a **failure** result containing an object with `validationError` property set to
    * validation error will be returned.
-   * - If response status is **outside** inclusive range from 200 to 299 and transform function **did
-   * not throw** an error and **succeed to validate** the received data then a **failure** result
-   * containing an object with `serverError` property set to transformed value will be returned.
-   * - If response status is **inside** inclusive range from 200 to 299 and transform function **did
-   * not throw** an error and **succeed to validate** the received data then a **success** result
-   * containing the transformed value will be returned.
+   * - If response status is **outside** inclusive range from 200 to 299 and transform function
+   * **succeed to validate** the received data then a **failure** result containing an object with
+   * `serverError` property set to transformed value will be returned.
+   * - If response status is **inside** inclusive range from 200 to 299 and transform function
+   * **succeed to validate** the received data then a **success** result containing the transformed
+   * value will be returned.
    */
   async function fetchmap<
     Response extends Awaited<ReturnType<Fetch>>,
