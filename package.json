@@ -3,14 +3,14 @@
   "version": "0.0.23",
   "description": "Non-throwing fetch wrapper",
   "sideEffects": false,
-  "types": "./dist/index.d.ts",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "react-native": "./dist/index.js",
+  "types": "./dist/dts/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/mjs/index.js",
+  "react-native": "./dist/mjs/index.js",
   "exports": {
     ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js"
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/mjs/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -18,7 +18,8 @@
   "scripts": {
     "preversion": "npm run lint -- --fix && npm run build && npm run typecheck-test && npm t && npm run type-coverage && npm run typedoc",
     "postversion": "git add . && git commit -am \"lint & docs [skip build]\" || : && git push && git push --tags",
-    "build": "rm -rf dist && rollup -c rollup.config.ts --configPlugin typescript && rm -rf tmp",
+    "build:ts": "tsc -p configs/tsconfig.cjs.json && tsc -p configs/tsconfig.mjs.json && tsc -p configs/tsconfig.dts.json",
+    "build": "rm -rf dist && npm run build:ts && echo '{ \"type\": \"commonjs\" }' >> dist/cjs/package.json",
     "lint": "eslint .",
     "test": "jest",
     "typedoc": "typedoc src/index.ts && touch docs/.nojekyll",
@@ -48,7 +49,6 @@
   "devDependencies": {
     "@babel/preset-env": "^7.17.10",
     "@babel/preset-typescript": "^7.16.7",
-    "@rollup/plugin-typescript": "^8.3.2",
     "@types/express": "^4.17.13",
     "@types/jest": "^27.4.1",
     "@types/node": "^17.0.30",
@@ -68,11 +68,10 @@
     "jest": "^27.5.1",
     "node-fetch": "^3.2.4",
     "prettier": "^2.6.2",
-    "rollup": "2.73.0",
-    "rollup-plugin-dts": "^4.2.1",
+    "ts-is-record": "^3.0.4",
     "type-coverage": "^2.21.1",
     "typedoc": "^0.22.15",
-    "typescript": "^4.6.3"
+    "typescript": "^4.6.4"
   },
   "jest": {
     "moduleFileExtensions": [

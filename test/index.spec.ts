@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { isRecord } from 'ts-is-record'
 import { createFetchmap } from '../src'
 import nodeFetch, { Response, FetchError, Blob, FormData } from 'node-fetch'
 
@@ -167,5 +168,32 @@ describe('fetchmap', () => {
   test('fail, validationError, ok is json', async () => {
     const result = await fetchmap({ ok: { json: () => failure('fail') } }, url('json'))
     expect(result).toEqual<typeof result>(failure({ validationError: 'fail' }))
+  })
+
+  test('readme example', async () => {
+    const validateData = (body: unknown) =>
+      isRecord(body) && 'some' in body && typeof body.some === 'string'
+        ? success(body)
+        : failure('data validation failed' as const)
+
+    const validateError = (body: string, { status }: Response) => success({ message: body, status })
+
+    const dataResult = await fetchmap(
+      {
+        ok: { json: validateData },
+        notOk: { text: validateError },
+        404: { noBody: (response) => success(response.statusText) }
+      },
+      url('data')
+    )
+
+    expect([
+      { tag: 'success', success: { some: 'data' } },
+      { tag: 'failure', failure: { serverError: { message: 'Server error!', status: 500 } } },
+      {
+        tag: 'failure',
+        failure: { mapError: new SyntaxError('Unexpected token T in JSON at position 0') }
+      }
+    ]).toContainEqual(dataResult)
   })
 })

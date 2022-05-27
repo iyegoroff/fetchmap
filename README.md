@@ -26,55 +26,76 @@ This is a simple wrapper for a `fetch`-like function that catches all possible e
 ## Example
 
 ```ts
-// server code
+// ----------------------------- server code -----------------------------
 import express from 'express'
 
 express()
-  .get('/json', (_, res) => {
-    res.json({ some: 'data' })
+  .get('/data', (_, res) => {
+    const rnd = Math.random()
+
+    if (rnd < 0.34) {
+      res.status(200).json({ some: 'data' })
+    } else if (rnd < 0.67) {
+      res.status(201).send('This is not JSON!')
+    } else {
+      res.status(500).send('Server error!')
+    }
   })
   .listen(5005)
 
-// client code
+// ----------------------------- client code -----------------------------
 import { createFetchmap } from 'fetchmap'
-import fetch from 'node-fetch'
+import nodeFetch, { Response } from 'node-fetch'
+import { isRecord } from 'ts-is-record'
 
+// fetchmap compatible result creators
 const success = <T>(value: T) => ({ tag: 'success', success: value } as const)
+const failure = <T>(error: T) => ({ tag: 'failure', failure: error } as const)
 
-const fetchmap = createFetchmap(fetch)
+// wrap any fetch-like function
+const fetchmap = createFetchmap(nodeFetch)
 
-const mock_data_validator = (data: unknown) => success(data)
+// data is expected to be JSON, so it has to be validated
+const validateData = (body: unknown) =>
+  isRecord(body) && 'some' in body && typeof body.some === 'string'
+    ? success(body)
+    : failure('data validation failed' as const)
 
-const json_success = await fetchmap(
-  { ok: { json: mock_data_validator } },
-  'https://localhost:5005/json'
+// error is just a string, in this example no validation needed
+const validateError = (body: string, { status }: Response) => success({ message: body, status })
+
+const dataResult = await fetchmap(
+  {
+    // for any response with a status inside inclusive range 200..299
+    // call 'json' method and validate its result with `validateData` function
+    ok: { json: validateData },
+
+    // for any response with a status outside inclusive range 200..299
+    // call 'text' method and validate its result with `validateError` function
+    notOk: { text: validateError }
+  },
+
+  // first argument for a wrapped fetch function
+  'https://localhost:5005/data',
+
+  // second argument for a wrapped fetch function
+  {
+    // request options: method, headers, body etc.
+  }
 )
-expect(json_success).toEqual({ tag: 'success', success: { some: 'data' } })
 
-const json_success_only_200 = await fetchmap(
-  { 200: mock_data_validator },
-  'https://localhost:5005/json'
-)
-expect(json_success_only_200).toEqual({ tag: 'success', success: { some: 'data' } })
-
-const invalid_url_failure = await fetchmap({}, '1234')
-expect(invalid_url_failure).toEqual({
-  tag: 'failure',
-  failure: { clientError: new TypeError('Only absolute URLs are supported') }
-})
-
-const not_found_error_with_request_init = await fetchmap(
-  { notOk: { noBody: ({ status }) => success(status) } },
-  'https://localhost:5005/invalid',
-  { method: 'POST', credentials: 'include' }
-)
-expect(not_found_error_with_request_init).toEqual({ tag: 'failure', failure: { serverError: 404 } })
+expect([
+  { tag: 'success', success: { some: 'data' } },
+  { tag: 'failure', failure: { serverError: { message: 'Server error!', status: 500 } } },
+  {
+    tag: 'failure',
+    failure: { mapError: new SyntaxError('Unexpected token T in JSON at position 0') }
+  }
+]).toContainEqual(dataResult)
 ```
 
 ## Usage
 
 See [test](/test) or [playground](https://www.typescriptlang.org/play?jsx=0#code/JYWwDg9gTgLgBAbzgYygUwIYzQMTTZACxAzDgF84AzKCEOAcivyJLAYCgPkIA7AZ3j8ArsmRp+-OAF44AHgAqAPgAUANwwAbYWgBccBQEoZSuCqQwMAc30MRYifwYAaOPfGT9G7WgpwMUjwCMIbcfILUGMDa6DLyyipoULRQ+kYmZhbWtlRRMWgukdHC6PpJKX4BKOEhXEERzATEpHGomNh4TWwqjUShYcFwJZpxDIQwMGC6APTTmhDIWoQQgroArAAMG2ucAxEAVsKCAEoSkAK+sr3NYObkrsP99fAgCwDWACJYGABqWsAAEyw0DiKiBln0wl4b14EAA7rxjNJTOCMDJpLIGMBeN5AXBUQBCBhwAD8RXyKixOP+AOJVWexn07kc5nx3woTxqcH2-D4f00gKwaABcQwcKi8Gu3SQEDe+iQPL4+leyE+335gpgIMo9yGUE0-WAVDMit4GvBwoAdJYrOjMczJAxjAgOHA3dUBBBNGhLfMrJSHfxdIVTeahQDLYHQpQ0Jp+L4Xe6Pbzvb6IP6mHkSnoQ7yzTTw5bcsV0NG6lyAEbzCsAZVEHn4AEFeACFGgAB4wHBZ2JXFg3Vmy+VwKsQCv6dsZQMqdvGXWwmAAeTliDg2E7E6n9ZZs78use5cGsIAQhAAQBPOsOSRxKWkQcrpAns-n-QqKBI0zTqCRywwI5zhQDz6pygwgMImgwMAYDegAsqQUh9l096Ju6ABMWzDhgyQYOex7CFQzCpHAk7Im426SDOc7OK67oACwbHRw5UNAIBfBCJFbte-BUUBtFukOq7rjAm5kdOu73PxcALsuw7Pheb4flxDbvta55gGgc4cPuIGHhE6AAI46IIACSvDAEuYAwIh1D9tKOmaK4SAgPgywArYAAKi41gohRtACaC8FBWhBow2LINoAXEuQoRAA)
-
-## Misc
 
 [ts-railway](https://github.com/iyegoroff/ts-railway) - compatible result library

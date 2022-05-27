@@ -30,6 +30,17 @@ express()
   .get('/throw', (req, res) => {
     throw new Error('Error!')
   })
+  .get('/data', (_, res) => {
+    const rnd = Math.random()
+
+    if (rnd < 0.34) {
+      res.status(200).json({ some: 'data' })
+    } else if (rnd < 0.67) {
+      res.status(201).send('This is not JSON!')
+    } else {
+      res.status(500).send('Server error!')
+    }
+  })
   .listen(5005, () => {
     console.log(`Listening at http://localhost:5005`)
   })
