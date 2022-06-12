@@ -1,6 +1,6 @@
 {
   "name": "fetchmap",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Non-throwing Fetch API wrapper",
   "sideEffects": false,
   "types": "./dist/dts/index.d.ts",
