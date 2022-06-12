@@ -11,7 +11,7 @@
 
 <!-- [![Bundlephobia](https://badgen.net/bundlephobia/minzip/fetchmap?label=min+gzip)](https://bundlephobia.com/package/fetchmap) -->
 
-Non-throwing fetch wrapper
+Non-throwing Fetch API wrapper
 
 ## Getting started
 
