@@ -1,7 +1,7 @@
 import { spawn } from 'child_process'
 import { isRecord } from 'ts-is-record'
 import { createFetchmap } from '../src'
-import nodeFetch, { Response, FetchError, Blob, FormData } from 'node-fetch'
+import nodeFetch, { Response, FetchError, Blob, FormData, AbortError } from 'node-fetch'
 
 const fetchmap = createFetchmap(nodeFetch)
 
@@ -168,6 +168,20 @@ describe('fetchmap', () => {
   test('fail, validationError, ok is json', async () => {
     const result = await fetchmap({ ok: { json: () => failure('fail') } }, url('json'))
     expect(result).toEqual<typeof result>(failure({ validationError: 'fail' }))
+  })
+
+  test('fail, clientError, abort signal', async () => {
+    const ctrlr = new AbortController()
+
+    setTimeout(() => ctrlr.abort(), 250)
+
+    const result = await fetchmap({ ok: { noBody: (r) => success(r.status) } }, url('slow'), {
+      signal: ctrlr.signal
+    })
+
+    expect(result).toEqual<typeof result>(
+      failure({ clientError: new AbortError('The operation was aborted.') })
+    )
   })
 
   test('readme example', async () => {

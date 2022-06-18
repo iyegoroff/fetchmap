@@ -15,6 +15,9 @@ express()
   .get('/json', (req, res) => {
     res.json({ some: 'data' })
   })
+  .get('/slow', (req, res) => {
+    setTimeout(() => res.json({ some: 'data' }), 500)
+  })
   .get('/json-201', (req, res) => {
     res.status(201).json(['its 201'])
   })
